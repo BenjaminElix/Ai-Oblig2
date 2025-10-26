@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FPS Sensitivity Converter</title>
+  <style>
+    :root {
+      --bg1: #0f172a;
+      --bg2: #1e293b;
+      --fg:  #e2e8f0;
+      --mut: #94a3b8;
+      --card:#0b1222;
+      --brd: #334155;
+      --pri: #0ea5e9;
+      --pri-h:#0284c7;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center;
+      background: linear-gradient(180deg, var(--bg1), var(--bg2));
+      background: url(Lucid_Origin_cool_picture_of_military_guys_in_tactical_gear_wi_1.jpg);
+      background-size: cover;
+      color: var(--fg); font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif;
+    }
+    h1 { margin: 28px 16px 8px; font-size: 26px; text-align:center; text-shadow: 0 0 20px black;}
+    p.lead { margin:0 16px 18px; color: var(--fg); text-align:center; text-shadow: 0 0 20px black;}
+    .converter {
+      width: 92%; max-width: 820px; background: var(--card); border:1px solid var(--brd);
+      border-radius: 14px; padding: 18px; box-shadow: 0 0 24px rgba(0,0,0,.28);
+    }
+    .grid { display:grid; gap:14px; }
+    .g-2 { grid-template-columns: 1fr; }
+    @media (min-width: 780px) { .g-2 { grid-template-columns: 1fr 1fr; } }
+    label { display:block; font-size:13px; color: var(--mut); margin-bottom:6px; }
+    select, input {
+      width:100%; padding:10px 12px; border-radius:10px; border:1px solid #475569;
+      background:#0b1222; color:var(--fg); font-size:14px;
+    }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    button {
+      width:100%; padding:12px; margin-top:6px; background: var(--pri); color:#fff;
+      border:none; border-radius:10px; font-weight:700; cursor:pointer;
+    }
+    button:hover { background: var(--pri-h); }
+    .result, .explain {
+      background:#0a1020; border:1px solid var(--brd); border-radius:12px; padding:12px; margin-top:10px;
+    }
+    .result { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; white-space:pre-wrap; }
+    .muted { color: var(--mut); font-size:12px; }
+    .flex { display:flex; gap:10px; }
+    .half { flex:1; }
+    .actions { display:flex; gap:10px; margin-top:8px; }
+    .ghost {
+      background: transparent; border:1px solid var(--brd); color:var(--fg);
+    }
+    footer { margin:20px 0 24px; font-size:12px; color: var(--mut); text-align:center; }
+    .note { font-size:12px; color: var(--mut); margin-top:8px; }
+  </style>
+</head>
+<body>
+  <h1>FPS Sensitivity Converter</h1>
+  <p class="lead">Match identisk <b>cm/360</b> på tvers av spill. Velg spillene, skriv inn DPI og sens – ferdig.</p>
+
+  <div class="converter">
+    <!-- Spillvalg -->
+    <div class="grid g-2">
+      <div>
+        <label for="fromGame">Fra spill</label>
+        <select id="fromGame"></select>
+      </div>
+      <div>
+        <label for="toGame">Til spill</label>
+        <select id="toGame"></select>
+      </div>
+    </div>
+
+    <!-- Tallverdier -->
+    <div class="grid g-2" style="margin-top:10px;">
+      <div class="row">
+        <div>
+          <label for="fromDpi">Fra DPI</label>
+          <input type="number" id="fromDpi" value="800" inputmode="numeric"/>
+        </div>
+        <div>
+          <label for="fromSens">Fra sens</label>
+          <input type="number" id="fromSens" value="2.00" step="0.000001" inputmode="decimal"/>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label for="toDpi">Til DPI</label>
+          <input type="number" id="toDpi" value="800" inputmode="numeric"/>
+        </div>
+        <div class="actions">
+          <button onclick="convertSens()">Konverter</button>
+          <button class="ghost" onclick="swap()">Bytt retning</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resultat -->
+    <div id="result" class="result">Resultat kommer her…</div>
+
+    <!-- Info -->
+    <div class="grid g-2" style="margin-top:10px;">
+      <div class="explain half">
+        <div class="muted">Formler</div>
+        <div class="note">
+          cm/360 = (360 × 2,54) / (DPI × Sens × Yaw)<br/>
+          Sens = (360 × 2,54) / (cm/360 × DPI × Yaw)
+        </div>
+      </div>
+      <div class="explain half">
+        <div class="muted">Tips</div>
+        <div class="note">
+          • Hold cm/360 likt for muskelminne.<br/>
+          • eDPI kan justeres via DPI etterpå.<br/>
+          • WPS bør stå på 6/11 (rå inndata).
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      Kilder for yaw og metode: KovaaK’s matcher, XBitLabs (cm/360-forklaring), Aiming.Pro (OW2/D2/R6), diskusjoner som bekrefter CoD/OW2/D2 yaw ~0,0066.
+    </div>
+  </div>
+
+  <footer>© 2025 – Enkel sens-konverter. Laget i Fredrikstad.</footer>
+
+  <script>
+    const GAME_LIST = [
+      { name: "CS2 / CS:GO", yaw: 0.022 },
+      { name: "Team Fortress 2", yaw: 0.022 },
+      { name: "Half-Life 2", yaw: 0.022 },
+      { name: "Quake Champions", yaw: 0.022 },
+      { name: "Apex Legends", yaw: 0.022 },
+      { name: "Titanfall 2", yaw: 0.022 },
+      { name: "Valorant", yaw: 0.07 },
+      { name: "Overwatch 2", yaw: 0.0066 },
+      { name: "Destiny 2", yaw: 0.0066 },
+      { name: "Call of Duty (MW/WZ)", yaw: 0.0066 },
+      { name: "Fortnite", yaw: 0.005555556 },
+      { name: "Rainbow Six Siege", yaw: 0.005729578 }
+    ];
+
+    const fromSel = document.getElementById("fromGame");
+    const toSel   = document.getElementById("toGame");
+    const fromDpi = document.getElementById("fromDpi");
+    const fromSens= document.getElementById("fromSens");
+    const toDpi   = document.getElementById("toDpi");
+    const resultEl= document.getElementById("result");
+
+    function populateSelects() {
+      GAME_LIST.forEach(g => {
+        const opt1 = document.createElement("option");
+        opt1.value = g.name; opt1.textContent = `${g.name} (${g.yaw})`;
+        const opt2 = opt1.cloneNode(true);
+        fromSel.appendChild(opt1);
+        toSel.appendChild(opt2);
+      });
+      fromSel.value = "CS2 / CS:GO";
+      toSel.value = "Valorant";
+    }
+
+    function yawOf(sel) {
+      const g = GAME_LIST.find(x => x.name === sel.value);
+      return g ? g.yaw : NaN;
+    }
+
+    function cm360(dpi, sens, yaw) {
+      return (360 * 2.54) / (dpi * sens * yaw);
+    }
+    function sensFromCm360(cm360Val, dpi, yaw) {
+      return (360 * 2.54) / (cm360Val * dpi * yaw);
+    }
+    const round = (n, d=6) => (isFinite(n) ? (Math.round(n * 10**d) / 10**d) : NaN);
+
+    function convertSens() {
+      const fy = yawOf(fromSel);
+      const ty = yawOf(toSel);
+      const fd = parseFloat(fromDpi.value);
+      const fs = parseFloat(fromSens.value);
+      const td = parseFloat(toDpi.value);
+      if (!isFinite(fy) || !isFinite(ty) || !fd || !fs || !td) {
+        resultEl.textContent = "Ugyldig input.";
+        return;
+      }
+      const cm = cm360(fd, fs, fy);
+      const ns = sensFromCm360(cm, td, ty);
+      const inch = cm / 2.54;
+      const edpi1 = fd * fs;
+      const edpi2 = td * ns;
+      const out =
+`Fra: ${fromSel.value} | sens ${fs} @ ${fd} DPI
+Til:  ${toSel.value}   | sens ${round(ns, 6)} @ ${td} DPI
+
+cm/360: ${round(cm, 3)} cm   |   in/360: ${round(inch, 3)} in
+eDPI:   ${round(edpi1, 1)} → ${round(edpi2, 1)}`;
+      resultEl.textContent = out;
+    }
+
+    function swap() {
+      const fName = fromSel.value, tName = toSel.value;
+      const fd = fromDpi.value, td = toDpi.value;
+      convertSens();
+      const match = resultEl.textContent.match(/sens ([0-9.]+)/);
+      const newSens = match ? match[1] : fromSens.value;
+      fromSel.value = tName;
+      toSel.value = fName;
+      fromDpi.value = td;
+      toDpi.value = fd;
+      fromSens.value = newSens;
+      convertSens();
+    }
+
+    populateSelects();
+    convertSens();
+  </script>
+</body>
+</html>
